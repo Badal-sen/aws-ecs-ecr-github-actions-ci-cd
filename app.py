@@ -1,158 +1,180 @@
 from flask import Flask, request, redirect, render_template_string
+import sqlite3
 
 app = Flask(__name__)
-
-employees = [
-    {"id": 1, "name": "Sarah Johnson", "position": "Manager"}
-]
 
 HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Employee Management System</title>
+<title>Employee Dashboard</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{
+    font-family: Arial;
+    background:#f4f4f4;
+    padding:40px;
+}
 
-    <style>
-        body{
-            background:#f5f7fb;
-        }
+.container{
+    max-width:900px;
+    margin:auto;
+}
 
-        .hero{
-            background:#212529;
-            color:white;
-            padding:30px;
-            border-radius:15px;
-            margin-bottom:20px;
-        }
+.header{
+    background:#1f2937;
+    color:white;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:20px;
+}
 
-        .card{
-            border:none;
-            border-radius:15px;
-            box-shadow:0 4px 12px rgba(0,0,0,.1);
-        }
-    </style>
+.card{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:20px;
+}
+
+input{
+    padding:10px;
+    width:35%;
+}
+
+button{
+    padding:10px 20px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.add-btn{
+    background:#22c55e;
+    color:white;
+}
+
+.delete-btn{
+    background:#ef4444;
+    color:white;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    padding:10px;
+    border-bottom:1px solid #ddd;
+}
+</style>
 </head>
 
 <body>
 
-<div class="container mt-5">
+<div class="container">
 
-    <div class="hero">
-        <h1>Employee Management Dashboard</h1>
-        <p>AWS ECS + ECR + GitHub Actions CI/CD Demo</p>
-        <h4>Total Employees: {{ employees|length }}</h4>
-    </div>
-
-    <div class="card p-4 mb-4">
-
-        <h4>Add Employee</h4>
-
-        <form method="POST" action="/add">
-
-            <div class="row">
-
-                <div class="col-md-5">
-                    <input class="form-control"
-                           type="text"
-                           name="name"
-                           placeholder="Employee Name"
-                           required>
-                </div>
-
-                <div class="col-md-5">
-                    <input class="form-control"
-                           type="text"
-                           name="position"
-                           placeholder="Position"
-                           required>
-                </div>
-
-                <div class="col-md-2">
-                    <button class="btn btn-success w-100"
-                            type="submit">
-                        Add
-                    </button>
-                </div>
-
-            </div>
-
-        </form>
-
-    </div>
-
-    <div class="card p-4">
-
-        <h4>Employee List</h4>
-
-        <table class="table table-striped">
-
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Position</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-            {% for employee in employees %}
-
-                <tr>
-
-                    <td>{{ employee.id }}</td>
-                    <td>{{ employee.name }}</td>
-                    <td>{{ employee.position }}</td>
-
-                    <td>
-
-                        <form method="POST"
-                              action="/delete/{{ employee.id }}">
-
-                            <button class="btn btn-danger btn-sm">
-                                Delete
-                            </button>
-
-                        </form>
-
-                    </td>
-
-                </tr>
-
-            {% endfor %}
-
-            </tbody>
-
-        </table>
-
-    </div>
-
+<div class="header">
+<h1>Employee Management Dashboard</h1>
+<p>AWS ECS + ECR + GitHub Actions CI/CD Demo</p>
+<h2>Total Employees: {{ count }}</h2>
 </div>
 
+<div class="card">
+<h2>Add Employee</h2>
+
+<form method="POST" action="/add">
+<input type="text" name="name" placeholder="Employee Name" required>
+<input type="text" name="position" placeholder="Position" required>
+<button class="add-btn">Add</button>
+</form>
+</div>
+
+<div class="card">
+<h2>Employee List</h2>
+
+<table>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Position</th>
+<th>Action</th>
+</tr>
+
+{% for employee in employees %}
+<tr>
+<td>{{ employee[0] }}</td>
+<td>{{ employee[1] }}</td>
+<td>{{ employee[2] }}</td>
+<td>
+<form method="POST" action="/delete/{{ employee[0] }}">
+<button class="delete-btn">Delete</button>
+</form>
+</td>
+</tr>
+{% endfor %}
+
+</table>
+</div>
+
+</div>
 </body>
 </html>
 """
 
+def get_db():
+    return sqlite3.connect("employees.db")
+
 @app.route("/")
 def home():
-    return render_template_string(HTML, employees=employees)
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM employees")
+    employees = cursor.fetchall()
+
+    conn.close()
+
+    return render_template_string(
+        HTML,
+        employees=employees,
+        count=len(employees)
+    )
 
 @app.route("/add", methods=["POST"])
 def add():
-    employees.append({
-        "id": len(employees) + 1,
-        "name": request.form["name"],
-        "position": request.form["position"]
-    })
+
+    name = request.form["name"]
+    position = request.form["position"]
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT INTO employees(name, position) VALUES (?, ?)",
+        (name, position)
+    )
+
+    conn.commit()
+    conn.close()
+
     return redirect("/")
 
 @app.route("/delete/<int:id>", methods=["POST"])
 def delete(id):
-    global employees
-    employees = [e for e in employees if e["id"] != id]
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM employees WHERE id=?",
+        (id,)
+    )
+
+    conn.commit()
+    conn.close()
+
     return redirect("/")
 
 if __name__ == "__main__":
