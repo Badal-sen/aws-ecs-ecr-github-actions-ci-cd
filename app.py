@@ -53,7 +53,7 @@ HTML = """
 """
 
 def get_db():
-    print("Connecting to PostgreSQL...")
+    print("Connecting to PostgreSQL...", flush=True)
 
     return psycopg2.connect(
         host=os.environ["DB_HOST"],
@@ -64,27 +64,20 @@ def get_db():
     )
 
 def init_db():
-    try:
-        conn = get_db()
-        cursor = conn.cursor()
+    conn = get_db()
+    cursor = conn.cursor()
 
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS employees (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            position VARCHAR(100) NOT NULL
-        )
-        """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS employees (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        position VARCHAR(100) NOT NULL
+    )
+    """)
 
-        conn.commit()
-
-        cursor.close()
-        conn.close()
-
-        print("Database initialized successfully")
-
-    except Exception as e:
-        print(f"DATABASE ERROR: {e}")
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 @app.route("/")
 def home():
@@ -127,7 +120,6 @@ def add():
         )
 
         conn.commit()
-
         cursor.close()
         conn.close()
 
@@ -148,7 +140,6 @@ def delete(id):
         )
 
         conn.commit()
-
         cursor.close()
         conn.close()
 
@@ -157,7 +148,12 @@ def delete(id):
     except Exception as e:
         return f"Database Error: {e}", 500
 
-init_db()
+try:
+    print("Starting application...", flush=True)
+    init_db()
+    print("Database initialization completed", flush=True)
+except Exception as e:
+    print(f"STARTUP DATABASE ERROR: {e}", flush=True)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
