@@ -73,7 +73,7 @@ conn.close()
 return redirect("/")
 ```
 
-@app.route("/edit/[int:id](int:id)")
+@app.route("/edit/<int:id>")
 def edit(id):
 conn = get_db()
 cursor = conn.cursor()
@@ -95,7 +95,7 @@ return render_template(
 )
 ```
 
-@app.route("/update/[int:id](int:id)", methods=["POST"])
+@app.route("/update/<int:id>", methods=["POST"])
 def update(id):
 name = request.form["name"]
 position = request.form["position"]
@@ -121,7 +121,7 @@ conn.close()
 return redirect("/")
 ```
 
-@app.route("/delete/[int:id](int:id)", methods=["POST"])
+@app.route("/delete/<int:id>", methods=["POST"])
 def delete(id):
 conn = get_db()
 cursor = conn.cursor()
